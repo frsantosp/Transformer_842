@@ -18,8 +18,12 @@ parser = argparse.ArgumentParser(description='Argument Parser for optimizer, dro
 
 parser.add_argument('--epochs', type=int, required=False, help='How many epochs to train for', default=1000)
 parser.add_argument('--CUDA', type=str, required=False, choices=["True", "False"], help='Train on gpu', default="True")
+parser.add_argument('--save_interval', type=int, required=False, help='How many epochs to save the model', default=100)
+parser.add_argument('--loss_save_path', type=str, required=False,  help='directory to save loss data to', default="Loss")
 
 args = parser.parse_args()
+
+print("Using arguments: ", args)
 
 """
 Hyperparameters
@@ -27,7 +31,7 @@ Hyperparameters
 CUDA = (args.CUDA == "True")
 PRINT_INTERVAL = 5000
 VALIDATE_AMOUNT = 10
-SAVE_INTERVAL = 1000
+SAVE_INTERVAL = args.save_interval
 
 batch_size = 128
 embed_dim = 64
@@ -194,7 +198,7 @@ for epoch in range(num_epochs):
 
             print("BACK TO TRAINING:")
             dataset.train()
-        if num_steps % SAVE_INTERVAL == 0:
+        if epoch % SAVE_INTERVAL == 0:
             torch.save(
                 {
                     "model": model.state_dict(),
@@ -203,7 +207,7 @@ for epoch in range(num_epochs):
                     "train_losses": train_losses,
                     "test_losses": test_losses,
                 },
-                os.path.join("Checkpoints", "Checkpoint" + str(num_steps) + ".pkl"),
+                os.path.join("Checkpoints", "Checkpoint" + str(epoch) + ".pkl"),
             )
 
-loss_data.to_csv(os.path.join("Loss", "loss_data_transformer.csv"))
+loss_data.to_csv(os.path.join(args.loss_save_path, "loss_data_transformer.csv"))

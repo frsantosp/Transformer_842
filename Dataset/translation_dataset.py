@@ -49,6 +49,28 @@ class EnglishToGermanDataset(torch.utils.data.Dataset):
             word = vocab[idx]
             sentence.append(word)
         return "".join(sentence)
+    
+    def word_index_to_sentence(self, words, language="german"):
+        if language == "german":
+            vocab = self.german_vocab_reversed
+        else:
+            vocab = self.english_vocab_reversed
+        sentence = []
+        for w in words:
+            word = vocab[w]
+            sentence.append(word)
+        return "".join(sentence)
+    
+    def word_index_to_token_list(self, words, language="german"):
+        if language == "german":
+            vocab = self.german_vocab_reversed
+        else:
+            vocab = self.english_vocab_reversed
+        sentence = []
+        for w in words:
+            word = vocab[w]
+            sentence.append(word)
+        return sentence
 
     def test(self):
         self.mode = "test"
