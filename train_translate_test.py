@@ -10,6 +10,7 @@ import random
 from Discriminator.discriminator import SentenceClassifier
 from torch.nn.functional import binary_cross_entropy_with_logits
 import argparse
+import pandas as pd
 
 """
 Command Line Arguments
@@ -28,7 +29,7 @@ Hyperparameters
 CUDA = (args.CUDA == "True")
 PRINT_INTERVAL = 5000
 VALIDATE_AMOUNT = 10
-SAVE_INTERVAL = 5000
+SAVE_INTERVAL = 1000
 LAMBDA = args.LAMBDA
 
 batch_size = 128
@@ -36,6 +37,7 @@ embed_dim = 64
 num_blocks = 2
 num_heads = 1  # Must be factor of token size
 max_context_length = 1000
+seed = 842
 
 num_epochs = args.epochs
 learning_rate = 1e-3
@@ -43,6 +45,7 @@ learning_rate = 1e-3
 use_teacher_forcing = False
 
 device = torch.device("cuda" if CUDA else "cpu")
+torch.manual_seed(seed)
 
 """
 Dataset
@@ -101,6 +104,9 @@ else:
     test_losses = []
     train_losses = []
     num_steps = 0
+
+loss_data = pd.DataFrame(np.zeros((num_epochs, 4)), columns=["Train Loss", "Test Loss", "Classifier Train Loss", "Classifier Test Loss"])
+
 """
 Train Loop
 """
@@ -249,6 +255,7 @@ for epoch in range(num_epochs):
             avg_test_loss = np.array(running_test_loss).mean()
             test_losses.append(avg_test_loss)
             avg_loss = np.array(running_loss).mean()
+            avg_classifier_loss = np.array(classifier_running_loss).mean()
             train_losses.append(avg_loss)
             print("LABEL: ", dataset.logit_to_sentence(item["logits"][0]))
             print("===")
@@ -256,6 +263,10 @@ for epoch in range(num_epochs):
             print(f"TRAIN LOSS {avg_loss} | EPOCH {epoch}")
             print(f"TEST LOSS {avg_test_loss} | EPOCH {epoch}")
             print(f"TEST CLASSIFIER LOSS {avg_classifier_test_loss} | EPOCH {epoch}")
+            
+            #Save loss data
+            loss_data.loc[epoch] = [avg_loss, avg_test_loss, avg_classifier_loss, avg_classifier_test_loss]
+
             print("BACK TO TRAINING:")
             dataset.train()
         if num_steps % SAVE_INTERVAL == 0:
@@ -269,3 +280,5 @@ for epoch in range(num_epochs):
                 },
                 os.path.join("Checkpoints", "Checkpoint_gan" + str(num_steps) + ".pkl"),
             )
+
+loss_data.to_csv(os.path.join("Loss", "loss_data_gan.csv"))

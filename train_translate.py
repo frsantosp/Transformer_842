@@ -5,18 +5,29 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import numpy as np
-from tqdm import tqdm
 import os
 import random
+import pandas as pd
+import argparse
 
+
+"""
+Command Line Arguments
+"""
+parser = argparse.ArgumentParser(description='Argument Parser for optimizer, dropout, activation function, embedding matrix, number of epochs, and learning rate.')
+
+parser.add_argument('--epochs', type=int, required=False, help='How many epochs to train for', default=1000)
+parser.add_argument('--CUDA', type=str, required=False, choices=["True", "False"], help='Train on gpu', default="True")
+
+args = parser.parse_args()
 
 """
 Hyperparameters
 """
-CUDA = False
+CUDA = (args.CUDA == "True")
 PRINT_INTERVAL = 5000
 VALIDATE_AMOUNT = 10
-SAVE_INTERVAL = 5000
+SAVE_INTERVAL = 1000
 
 batch_size = 128
 embed_dim = 64
@@ -24,20 +35,20 @@ num_blocks = 2
 num_heads = 1  # Must be factor of token size
 max_context_length = 1000
 
-num_epochs = 1000
+num_epochs = args.epochs
 learning_rate = 1e-3
 
 use_teacher_forcing = False
 
-device = torch.device("cuda:0" if CUDA else "cpu")
+device = torch.device("cuda" if CUDA else "cpu")
 
 """
 Dataset
 """
 dataset = EnglishToGermanDataset(CUDA=CUDA)
-dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=True)
+dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=True, generator=torch.Generator(device=device))
 dataloader_test = torch.utils.data.DataLoader(
-    dataset, batch_size=batch_size, shuffle=True
+    dataset, batch_size=batch_size, shuffle=True, generator=torch.Generator(device=device)
 )
 
 """
@@ -74,6 +85,12 @@ else:
     test_losses = []
     train_losses = []
     num_steps = 0
+
+"""
+Save Loss information
+"""
+loss_data = pd.DataFrame(np.zeros((num_epochs, 2)), columns=["Train Loss", "Test Loss"])
+
 """
 Train Loop
 """
@@ -84,7 +101,7 @@ for epoch in range(num_epochs):
     """
     TRAIN LOOP
     """
-    for idx, item in enumerate(tqdm(dataloader)):
+    for idx, item in enumerate(dataloader):
         """
         ============================================================
         """
@@ -172,6 +189,9 @@ for epoch in range(num_epochs):
             print("PRED: ", dataset.logit_to_sentence(all_outs[0]))
             print(f"TRAIN LOSS {avg_loss} | EPOCH {epoch}")
             print(f"TEST LOSS {avg_test_loss} | EPOCH {epoch}")
+
+            loss_data.loc[epoch] = [avg_loss, avg_test_loss]
+
             print("BACK TO TRAINING:")
             dataset.train()
         if num_steps % SAVE_INTERVAL == 0:
@@ -185,3 +205,5 @@ for epoch in range(num_epochs):
                 },
                 os.path.join("Checkpoints", "Checkpoint" + str(num_steps) + ".pkl"),
             )
+
+loss_data.to_csv(os.path.join("Loss", "loss_data_transformer.csv"))
