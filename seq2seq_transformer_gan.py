@@ -316,8 +316,8 @@ for epoch in range(num_epochs):
         optimizer.zero_grad()
 
         classifier_output = sentence_classifier(output.argmax(dim=2).detach())
-        penalty = binary_cross_entropy_with_logits(classifier_output, torch.zeros_like(classifier_output))
-        loss = criterion(output_flattened, target_flattened) - LAMBDA*penalty
+        penalty = binary_cross_entropy_with_logits(classifier_output, torch.ones_like(classifier_output))
+        loss = criterion(output_flattened, target_flattened) + LAMBDA*penalty
         losses.append(loss.item())
 
         # Back prop
