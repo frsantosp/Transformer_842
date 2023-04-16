@@ -13,7 +13,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import spacy
-from utils import translate_sentence, bleu, save_checkpoint, load_checkpoint
+from utils import translate_sentence, bleu, save_checkpoint, load_checkpoint, evaluation_scores
 from torch.utils.tensorboard import SummaryWriter
 from torchtext.legacy.datasets import Multi30k
 from torchtext.legacy.data import Field, BucketIterator
@@ -27,7 +27,7 @@ parser = argparse.ArgumentParser(description='Argument Parser for optimizer, dro
 
 parser.add_argument('--epochs', type=int, required=False, help='How many epochs to train for', default=100)
 parser.add_argument('--CUDA', type=str, required=False, choices=["True", "False"], help='Train on gpu', default="True")
-parser.add_argument('--load', type=str, required=False, choices=["True", "False"], help='Load model from checkpoint', default="True")
+parser.add_argument('--load', type=str, required=False, choices=["True", "False"], help='Load model from checkpoint', default="False")
 parser.add_argument('--save_interval', type=int, required=False, help='How many epochs to save the model', default=10)
 parser.add_argument('--loss_save_path', type=str, required=False,  help='directory to save loss data to', default="Loss")
 parser.add_argument('--num_heads', type=int, help="Number of heads for multi-headed attention", default=8)
@@ -362,5 +362,8 @@ for epoch in range(num_epochs):
     scheduler.step(mean_loss)
 
 # running on entire test data takes a while
-score = bleu(test_data[1:100], model, german, english, device)
-print(f"Bleu score {score * 100:.2f}")
+scores = evaluation_scores(test_data[1:100], model, german, english, device)
+print(f"Bleu score {scores[0] * 100:.2f}")
+print(f"Meteor score {scores[1] * 100:.2f}")
+print(f"Wer score {scores[2] * 100:.2f}")
+print(f"Rouge score", scores[3])

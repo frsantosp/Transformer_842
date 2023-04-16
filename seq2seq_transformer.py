@@ -302,5 +302,8 @@ for epoch in range(num_epochs):
     scheduler.step(mean_loss)
 
 # running on entire test data takes a while
-score = bleu(test_data[1:100], model, german, english, device)
-print(f"Bleu score {score * 100:.2f}")
+scores = evaluation_scores(test_data[1:100], model, german, english, device)
+print(f"Bleu score {scores[0] * 100:.2f}")
+print(f"Meteor score {scores[1] * 100:.2f}")
+print(f"Wer score {scores[2] * 100:.2f}")
+print(f"Rouge score", scores[3])
